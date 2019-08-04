@@ -1,7 +1,7 @@
-# Magisk Installer
+# Homemade820ThermalControlForOP3
 
-**Update `README.md` if you want to submit your module to the online repo!**
+**A simple Snapdragon 820 thermal control for Oneplus 3.
 
-For more information about how to use this module installer, please refer to [documentations](https://topjohnwu.github.io/Magisk/guides.html)
+system/bin/htc_script: thermal control script.
 
-If you are not familiar with the Markdown syntax, you can start by experimenting on GitHub's online Markdown editor, which will let you preview before publishing. If you need more help, the [Markdown Cheat Sheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) will be handy.
+system/bin/htccfg: used to get and change the running state of the script.

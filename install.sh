@@ -31,7 +31,7 @@ PROPFILE=false
 POSTFSDATA=false
 
 # Set to true if you need late_start service script
-LATESTARTSERVICE=false
+LATESTARTSERVICE=true
 
 ##########################################################################################
 # Replace list
@@ -122,9 +122,9 @@ REPLACE="
 # Set what you want to display when installing your module
 
 print_modname() {
-  ui_print "*******************************"
-  ui_print "     Magisk Module Template    "
-  ui_print "*******************************"
+  ui_print "***************************************************"
+  ui_print "     Homemade 820 Thermal Control For Oneplus 3    "
+  ui_print "***************************************************"
 }
 
 # Copy/extract your module files into $MODPATH in on_install.
@@ -143,6 +143,8 @@ on_install() {
 set_permissions() {
   # The following is the default rule, DO NOT remove
   set_perm_recursive $MODPATH 0 0 0755 0644
+  set_perm $MODPATH/system/bin/htccfg 0 0 0755
+  set_perm $MODPATH/system/bin/htc_script 0 0 0755
 
   # Here are some examples:
   # set_perm_recursive  $MODPATH/system/lib       0     0       0755      0644

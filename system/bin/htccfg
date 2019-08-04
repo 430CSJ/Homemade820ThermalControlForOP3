@@ -1,7 +1,7 @@
 #!/system/bin/sh
 
-htc_script_path="/system/htc_script"
-htc_cmd_no_space="sh${htc_script_path}"
+htc_script_path="/system/bin/htc_script"
+htc_cmd="sh ${htc_script_path}"
 
 find_htc_process()
 {
@@ -11,11 +11,12 @@ find_htc_process()
 	if [ -n "$pids" ]; then
 		for pid in $pids
 		do
-			process_cmds=`su -c ps -Af | grep $pid | grep -v grep | awk '{print $8$9}'`
+			process_cmds=`su -c ps -Af | grep $pid | grep -v grep | awk '{print $8" "$9}'`
 			if [ -n "$process_cmds" ]; then
+				IFS=$'\n'
 				for process_cmd in $process_cmds
 				do
-					if [ $process_cmd = $htc_cmd_no_space ]; then
+					if [ $process_cmd = $htc_cmd ]; then
 						found_processes[$p_i]=$pid
 						p_i=`expr $p_i + 1`
 					fi
@@ -42,7 +43,7 @@ show_htc_pid()
 
 run_htc_script()
 {
-	su -c nohup sh $htc_script_path > /dev/null 2>&1 &
+	su -c nohup $htc_script_path > /dev/null 2>&1 &
 }
 
 kill_htc_process()
