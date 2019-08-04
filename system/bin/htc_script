@@ -1,0 +1,79 @@
+#!/system/bin/sh
+{
+	flock -n 3
+	if [ $? -eq 1 ]; then
+		echo "Already running.";
+		exit;
+	fi
+	echo "Start running..."
+	mode=0
+	cpu01_max_freq0="1593600"
+	cpu01_max_freq2="1401600"
+	cpu23_max_freq0="2150400"
+	cpu23_max_freq1="1824000"
+	cpu23_max_freq2="1708800"
+	thermal_dir="/sys/class/thermal"
+	cpu0_max_freq_file="/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
+	cpu1_max_freq_file="/sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq"
+	cpu2_max_freq_file="/sys/devices/system/cpu/cpu2/cpufreq/scaling_max_freq"
+	cpu3_max_freq_file="/sys/devices/system/cpu/cpu3/cpufreq/scaling_max_freq"
+	while true
+	do
+		cpu_temp=0
+		for fd in `ls $thermal_dir`
+		do
+			if [ -d $thermal_dir"/"$fd ]; then
+				if [ -f $thermal_dir"/"$fd"/temp" ]; then
+					temp_tmp=`cat ${thermal_dir}/${fd}/temp`
+					if [ $temp_tmp -ge 120 -a $temp_tmp -lt 1200 -a $temp_tmp -gt $cpu_temp ]; then
+						cpu_temp=$temp_tmp
+					fi
+				fi
+			fi
+		done
+		if [ $cpu_temp -ge 1000 -a $mode != 2 ]; then
+			mode=`expr $mode + 1`
+			eval target_freq="$"cpu23_max_freq$mode
+			setprop ctl.stop mpdecision
+			stop mpdecision
+			chmod 0666 $cpu2_max_freq_file
+			echo $target_freq > $cpu2_max_freq_file
+			chmod 0444 $cpu2_max_freq_file
+			chmod 0666 $cpu3_max_freq_file
+			echo $target_freq > $cpu3_max_freq_file
+			chmod 0444 $cpu3_max_freq_file
+			if [ $mode == 2 ]; then
+				chmod 0666 $cpu0_max_freq_file
+				echo $cpu01_max_freq2 > $cpu0_max_freq_file
+				chmod 0444 $cpu0_max_freq_file
+				chmod 0666 $cpu1_max_freq_file
+				echo $cpu01_max_freq2 > $cpu1_max_freq_file
+				chmod 0444 $cpu1_max_freq_file
+			fi
+			setprop ctl.start mpdecision
+			start mpdecision
+		elif [ $cpu_temp -lt 900 -a $mode != 0 ]; then
+			setprop ctl.stop mpdecision
+			stop mpdecision
+			if [ $mode == 2 ]; then
+				chmod 0666 $cpu0_max_freq_file
+				echo $cpu01_max_freq0 > $cpu0_max_freq_file
+				chmod 0444 $cpu0_max_freq_file
+				chmod 0666 $cpu1_max_freq_file
+				echo $cpu01_max_freq0 > $cpu1_max_freq_file
+				chmod 0444 $cpu1_max_freq_file
+			fi
+			mode=0
+			eval target_freq="$"cpu23_max_freq$mode
+			chmod 0666 $cpu2_max_freq_file
+			echo $target_freq > $cpu2_max_freq_file
+			chmod 0444 $cpu2_max_freq_file
+			chmod 0666 $cpu3_max_freq_file
+			echo $target_freq > $cpu3_max_freq_file
+			chmod 0444 $cpu3_max_freq_file
+			setprop ctl.start mpdecision
+			start mpdecision
+		fi
+		sleep 3s
+	done
+} 3>/data/htc_lockfile

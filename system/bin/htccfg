@@ -1,0 +1,107 @@
+#!/system/bin/sh
+
+htc_script_path="/system/htc_script"
+htc_cmd_no_space="sh${htc_script_path}"
+
+find_htc_process()
+{
+	found_processes[0]=0
+	pids=`su -c ps -Af | grep "sh $htc_script_path" | grep -v grep | awk '{print $2}'`
+	p_i=0
+	if [ -n "$pids" ]; then
+		for pid in $pids
+		do
+			process_cmds=`su -c ps -Af | grep $pid | grep -v grep | awk '{print $8$9}'`
+			if [ -n "$process_cmds" ]; then
+				for process_cmd in $process_cmds
+				do
+					if [ $process_cmd = $htc_cmd_no_space ]; then
+						found_processes[$p_i]=$pid
+						p_i=`expr $p_i + 1`
+					fi
+				done
+			fi
+		done
+	fi
+}
+
+show_htc_pid()
+{
+	prefix=${1}
+	if [ ! -n "$prefix" ]; then
+		prefix="Running at PID:"
+	fi
+	echo $prefix
+	print_i=0
+	while(( $print_i<$p_i ))
+	do
+		echo ${found_processes[$print_i]}
+		print_i=`expr $print_i + 1`
+	done
+}
+
+run_htc_script()
+{
+	su -c nohup sh $htc_script_path > /dev/null 2>&1 &
+}
+
+kill_htc_process()
+{
+	kill_i=0
+	while(( $kill_i<$p_i ))
+	do
+		su -c kill ${found_processes[$kill_i]}
+		kill_i=`expr $kill_i + 1`
+	done
+}
+
+action=$1
+if [ ! -n "$action" ]; then
+	action="state"
+fi
+find_htc_process
+if [ $action = "state" ]; then
+	if [ ${found_processes[0]} -eq 0 ]; then
+		echo "Not running."
+	else
+		show_htc_pid
+	fi
+elif [ $action = "start" ]; then
+	if [ ${found_processes[0]} -eq 0 ]; then
+		echo "Starting..."
+		run_htc_script
+		sleep 3s
+		find_htc_process
+		if [ ${found_processes[0]} -eq 0 ]; then
+			echo "Failed."
+		else
+			echo "Success."
+			show_htc_pid
+		fi
+	else
+		show_htc_pid "Already running at PID:"
+	fi
+elif [ $action = "stop" ]; then
+	if [ ${found_processes[0]} -eq 0 ]; then
+		echo "Not running yet."
+	else
+		show_htc_pid
+		echo "Stopping..."
+		kill_htc_process
+		sleep 3s
+		find_htc_process
+		if [ ${found_processes[0]} -eq 0 ]; then
+			echo "Success."
+		else
+			echo "Failed."
+			show_htc_pid "Still running at PID:"
+		fi
+	fi
+elif [ $action = "help" ]; then
+	echo "Available action:"
+	echo "state\tShow whether the script is running"
+	echo "start\tStart running the script if not running"
+	echo "stop\tStop running the script if running"
+else
+	echo "Unknown action ${action} (see \"htccfg help\")"
+fi
