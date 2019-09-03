@@ -124,6 +124,7 @@ REPLACE="
 print_modname() {
   ui_print "***************************************************"
   ui_print "     Homemade 820 Thermal Control For Oneplus 3    "
+  ui_print "                        v 2                        "
   ui_print "***************************************************"
 }
 

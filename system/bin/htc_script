@@ -7,73 +7,74 @@
 	fi
 	echo "Start running..."
 	mode=0
+	extra_mode_num=3
 	cpu01_max_freq0="1593600"
+	cpu01_max_freq1="1478400"
 	cpu01_max_freq2="1401600"
+	cpu01_max_freq3="1324800"
 	cpu23_max_freq0="2150400"
-	cpu23_max_freq1="1824000"
-	cpu23_max_freq2="1708800"
+	cpu23_max_freq1="1996800"
+	cpu23_max_freq2="1824000"
+	cpu23_max_freq3="1708800"
+	gpu_max_freq0="624000000"
+	gpu_max_freq1="560000000"
+	gpu_max_freq2="510000000"
+	gpu_max_freq3="401800000"
 	thermal_dir="/sys/class/thermal"
 	cpu0_max_freq_file="/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
 	cpu1_max_freq_file="/sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq"
 	cpu2_max_freq_file="/sys/devices/system/cpu/cpu2/cpufreq/scaling_max_freq"
 	cpu3_max_freq_file="/sys/devices/system/cpu/cpu3/cpufreq/scaling_max_freq"
+	gpu_max_freq_file="/sys/class/kgsl/kgsl-3d0/max_gpuclk"
 	while true
 	do
-		cpu_temp=0
+		change_mode=false
+		max_temp=0
 		for fd in `ls $thermal_dir`
 		do
 			if [ -d $thermal_dir"/"$fd ]; then
 				if [ -f $thermal_dir"/"$fd"/temp" ]; then
 					temp_tmp=`cat ${thermal_dir}/${fd}/temp`
-					if [ $temp_tmp -ge 120 -a $temp_tmp -lt 1200 -a $temp_tmp -gt $cpu_temp ]; then
-						cpu_temp=$temp_tmp
+					if [ $temp_tmp -ge 120 -a $temp_tmp -lt 1200 -a $temp_tmp -gt $max_temp ]; then
+						max_temp=$temp_tmp
 					fi
 				fi
 			fi
 		done
-		if [ $cpu_temp -ge 1000 -a $mode != 2 ]; then
+		if [ $max_temp -gt 1000 -a $mode -lt $extra_mode_num ]; then
+			change_mode=true
 			mode=`expr $mode + 1`
-			eval target_freq="$"cpu23_max_freq$mode
-			setprop ctl.stop mpdecision
-			stop mpdecision
-			chmod 0666 $cpu2_max_freq_file
-			echo $target_freq > $cpu2_max_freq_file
-			chmod 0444 $cpu2_max_freq_file
-			chmod 0666 $cpu3_max_freq_file
-			echo $target_freq > $cpu3_max_freq_file
-			chmod 0444 $cpu3_max_freq_file
-			if [ $mode == 2 ]; then
-				chmod 0666 $cpu0_max_freq_file
-				echo $cpu01_max_freq2 > $cpu0_max_freq_file
-				chmod 0444 $cpu0_max_freq_file
-				chmod 0666 $cpu1_max_freq_file
-				echo $cpu01_max_freq2 > $cpu1_max_freq_file
-				chmod 0444 $cpu1_max_freq_file
-			fi
-			setprop ctl.start mpdecision
-			start mpdecision
-		elif [ $cpu_temp -lt 900 -a $mode != 0 ]; then
-			setprop ctl.stop mpdecision
-			stop mpdecision
-			if [ $mode == 2 ]; then
-				chmod 0666 $cpu0_max_freq_file
-				echo $cpu01_max_freq0 > $cpu0_max_freq_file
-				chmod 0444 $cpu0_max_freq_file
-				chmod 0666 $cpu1_max_freq_file
-				echo $cpu01_max_freq0 > $cpu1_max_freq_file
-				chmod 0444 $cpu1_max_freq_file
-			fi
+		elif [ $max_temp -lt 900 -a $mode -gt 1 ]; then
+			change_mode=true
+			mode=1
+		elif [ $max_temp -lt 800 -a $mode -gt 0 ]; then
+			change_mode=true
 			mode=0
-			eval target_freq="$"cpu23_max_freq$mode
+		fi
+		if [[ $change_mode == true ]]; then
+			eval target_freq_01="$"cpu01_max_freq$mode
+			eval target_freq_23="$"cpu23_max_freq$mode
+			eval target_freq_gpu="$"gpu_max_freq$mode
+			setprop ctl.stop mpdecision
+			stop mpdecision
+			chmod 0666 $cpu0_max_freq_file
+			echo $target_freq_01 > $cpu0_max_freq_file
+			chmod 0444 $cpu0_max_freq_file
+			chmod 0666 $cpu1_max_freq_file
+			echo $target_freq_01 > $cpu1_max_freq_file
+			chmod 0444 $cpu1_max_freq_file
 			chmod 0666 $cpu2_max_freq_file
-			echo $target_freq > $cpu2_max_freq_file
+			echo $target_freq_23 > $cpu2_max_freq_file
 			chmod 0444 $cpu2_max_freq_file
 			chmod 0666 $cpu3_max_freq_file
-			echo $target_freq > $cpu3_max_freq_file
+			echo $target_freq_23 > $cpu3_max_freq_file
 			chmod 0444 $cpu3_max_freq_file
+			chmod 0666 $gpu_max_freq_file
+			echo $target_freq_gpu > $gpu_max_freq_file
+			chmod 0644 $gpu_max_freq_file
 			setprop ctl.start mpdecision
 			start mpdecision
 		fi
-		sleep 3s
+		sleep 3
 	done
 } 3>/data/htc_lockfile
