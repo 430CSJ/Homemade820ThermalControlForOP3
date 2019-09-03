@@ -12,10 +12,10 @@ htc_script_path="/system/bin/htc_script"
 
 until [ "`getprop sys.boot_completed`" = "1" ]
 do
-	sleep 10s
+	sleep 10
 done
 nohup $htc_script_path > /dev/null 2>&1 &
-sleep 3s
+sleep 3
 nohup $htc_script_path > /dev/null 2>&1 &
-sleep 3s
+sleep 3
 nohup $htc_script_path > /dev/null 2>&1 &
